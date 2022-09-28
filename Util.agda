@@ -2,11 +2,18 @@ module Util where
 
 open import Agda.Builtin.Bool
 open import Agda.Builtin.Char
+open import Agda.Builtin.Equality
 open import Agda.Builtin.List
 open import Agda.Builtin.Maybe
 open import Agda.Builtin.Nat
 open import Agda.Builtin.String
 
+-- given some default value and a Maybe, definitely return one of them
+default : {V : Set} → V → Maybe V → V
+default n nothing = n
+default n (just m) = m
+
+-- return the same thing, for functions that need a noop fn
 ident : {V : Set} → V → V
 ident x = x
 
@@ -66,10 +73,17 @@ showMaybe : {V : Set} → (V → String) → Maybe V → String
 showMaybe f nothing = "nothing"
 showMaybe f (just v) = f v
 
--- take consecutive occurences of a character set
-takeCons : List Char → List Char → List Char
-takeCons [] _ = []
-takeCons _ [] = []
-takeCons cs (x ∷ xs) with (findCharIndex 0 x cs)
-...                     | nothing = []
-...                     | just n = x ∷ (takeCons cs xs)
+-- findAny : { A : Set } → Nat → A → List A → Nat
+-- findAny n t [] = n
+-- findAny n t (x ∷ xs) with (t ≡ x)
+-- ...                     | refl = n
+-- ...                     | _ = findAny (suc n) t xs
+
+split : List Char → List Char → List (List Char)
+split = go [] []
+  where
+    go : List Char → List (List Char) → List Char → List Char → List (List Char)
+    go acc acl delims [] = acl
+    go acc acl delims (x ∷ xs) with (primCharEquality x '\n')
+    ...                           | true = go [] (acc ∷ acl) delims xs
+    ...                           | false = go (x ∷ acc) acl delims xs

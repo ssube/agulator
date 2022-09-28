@@ -6,13 +6,29 @@ open import Agda.Builtin.Maybe
 open import Agda.Builtin.Nat
 open import Agda.Builtin.String
 
+open import Expr
 open import Util
 
-data Token : Set where
-  Digit : Nat → Token
-  Delim : Char → Token
-  Oper : Char → Token
-  Term : Token
+record Result (A : Set) : Set where
+  constructor emit
+  field
+    res : Maybe A
+    rem : List Char
+
+showResult : {A : Set} → (A → String) → Result A → String
+showResult f (emit (just r) _) = primStringAppend "result: " (f r)
+showResult f (emit nothing rem) = primStringAppend "remainder: " (primStringFromList rem)
+
+-- take consecutive occurences of a character set
+takeCons : List Char → List Char → Result (List Char)
+takeCons [] r = emit nothing r
+takeCons _ [] = emit nothing []
+takeCons cs (x ∷ xs) with (findCharIndex 0 x cs)
+...                     | nothing = emit nothing (x ∷ xs)
+-- ...                     | just n = x ∷ (takeCons cs xs)
+...                     | just n with (takeCons cs xs)
+...                                 | emit nothing rem = emit (just (x ∷ [])) xs
+...                                 | emit (just res) rem = emit (just (x ∷ res)) rem
 
 parseChar : Char → Token
 parseChar '0' = Digit 0
@@ -28,39 +44,54 @@ parseChar '9' = Digit 9
 parseChar ',' = Delim ','
 parseChar '=' = Oper '='
 parseChar '+' = Oper '+'
+parseChar ' ' = Skip ' '
 parseChar _   = Term
 
-parseNat : Nat → List Char → Nat
-parseNat a [] = a
+parseNat : Maybe Nat → List Char → Result Nat
+parseNat a [] = emit a []
 parseNat a (x ∷ xs) with parseChar x
-...                     | Digit n = parseNat ((a * 10) + n) xs
-...                     | _ = a
+...                     | Digit n = parseNat (just (((default 0 a) * 10) + n)) xs
+...                     | Skip c = parseNat a xs
+...                     | _ = emit nothing xs
 
 digits : List Char
 digits = primStringToList "0123456789"
 
-takeNat : String → Maybe Nat
-takeNat s with takeCons digits (primStringToList s)
-...            | [] = nothing
-...            | xs = just (parseNat 0 xs)
+takeNat : List Char → Result Nat
+takeNat s with takeCons digits s
+...            | emit nothing rem₁ = emit nothing rem₁
+...            | emit (just xs) rem₁ with parseNat nothing xs
+...                                     | emit nothing rem₂ = emit nothing rem₁
+...                                     | emit (just n) rem₂ = emit (just n) rem₁
 
-parseList₂ : String → List Nat
-parseList₂ s with primStringToList s
-...             | [] = []
-...             | (x ∷ xs) with parseChar x
-...                           | Digit n = n ∷ []
-...                           | _ = []
+takeOper : List Char → Result Token
+takeOper s with takeCons ('+' ∷ []) s
+...           | emit nothing rem = emit nothing rem
+...           | emit (just []) rem = emit nothing rem
+...           | emit (just (x ∷ xs)) rem with parseChar x
+...                                         | Oper o = emit (just (Oper o)) rem -- todo: what about xs?
+...                                         | _ = emit nothing rem -- todo: loop here?
 
--- old stuff...
+-- we know operators are a single char, so xs must be empty, but anything left there should be attached to rem?
 
-parseList : Nat → List Char → List Nat
-parseList a [] = a ∷ []
-parseList a (x ∷ xs) with parseChar x
-...                     | Digit n = parseList ((a * 10) + n) xs
-...                     | Delim s = a ∷ parseList 0 xs
-...                     | Oper o = [] -- ignore for now
-...                     | Term = []
+data BinExpr : Set where
+  bin : Token → Token → Token → BinExpr
 
-parseExpr : String → List Nat
-parseExpr "" = []
-parseExpr x = parseList 0 (primStringToList x)
+evalBin : Result BinExpr → Result Nat
+evalBin (emit nothing rem) = emit nothing rem
+evalBin (emit (just (bin (Oper '+') (Digit a) (Digit b))) rem) = emit (just (a + b)) rem
+evalBin (emit (just (bin _ _ _)) rem) = emit nothing rem
+
+takeBin : List Char → Result BinExpr
+takeBin s with takeNat s
+...           | emit nothing rem₁ = emit nothing s
+-- ...           | emit (just res₁) rem₁ = emit (just (bin (Oper '+') (Digit res₁) (Digit res₁))) rem₁
+...           | emit (just res₁) rem₁ with takeOper rem₁
+...                                       | emit nothing rem₃ = emit nothing rem₁
+-- ...                                       | emit (just oper) rem₂ = emit (just (bin oper (Digit res₁) (Digit res₁))) rem₁
+...                                       | emit (just oper) rem₃ with takeNat rem₃
+...                                                                   | emit nothing rem₄ = emit nothing rem₁
+...                                                                   | emit (just res₄) rem₄ = emit (just (bin oper (Digit res₁) (Digit res₄))) rem₄
+
+takeLine : List Char → List (Result BinExpr)
+takeLine s = map takeBin (split ('\n' ∷ []) s)

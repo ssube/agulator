@@ -1,6 +1,14 @@
-data BinExpr : Set where
-  binE : Token → Token → Token → BinExpr
+module Expr where
 
-evalBin : BinExpr → Maybe Nat
-evalBin (binE (Oper '+') (Digit a) (Digit b)) = just (a + b)
-evalBin (binE _ _ _) = nothing
+open import Agda.Builtin.Char
+open import Agda.Builtin.List
+open import Agda.Builtin.Maybe
+open import Agda.Builtin.Nat
+open import Agda.Builtin.String
+
+data Token : Set where
+  Digit : Nat → Token
+  Delim : Char → Token
+  Oper : Char → Token
+  Skip : Char → Token
+  Term : Token
