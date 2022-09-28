@@ -41,7 +41,7 @@ digits : List Char
 digits = primStringToList "0123456789"
 
 opers : List Char
-opers = primStringToList "=+"
+opers = primStringToList "-+"
 
 -- parse a single character into a typed token
 parseChar : Char → Token
@@ -56,7 +56,7 @@ parseChar '7' = Digit 7
 parseChar '8' = Digit 8
 parseChar '9' = Digit 9
 parseChar ',' = Delim ','
-parseChar '=' = Oper '='
+parseChar '-' = Oper '-'
 parseChar '+' = Oper '+'
 parseChar ' ' = Skip ' '
 parseChar _   = Term
@@ -90,6 +90,7 @@ data BinExpr : Set where
 evalBin : Result BinExpr → Result Nat
 evalBin (emit nothing rem) = emit nothing rem
 evalBin (emit (just (bin (Oper '+') (Digit a) (Digit b))) rem) = emit (just (a + b)) rem
+evalBin (emit (just (bin (Oper '-') (Digit a) (Digit b))) rem) = emit (just (a - b)) rem
 evalBin (emit (just (bin _ _ _)) rem) = emit nothing rem
 
 takeBin : List Char → Result BinExpr
