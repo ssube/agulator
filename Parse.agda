@@ -87,11 +87,11 @@ takeBin s with takeNat s
 ...           | emit nothing rem₁ = emit nothing s
 -- ...           | emit (just res₁) rem₁ = emit (just (bin (Oper '+') (Digit res₁) (Digit res₁))) rem₁
 ...           | emit (just res₁) rem₁ with takeOper rem₁
-...                                       | emit nothing rem₃ = emit nothing rem₁
+...                                       | emit nothing rem₂ = emit nothing rem₁
 -- ...                                       | emit (just oper) rem₂ = emit (just (bin oper (Digit res₁) (Digit res₁))) rem₁
-...                                       | emit (just oper) rem₃ with takeNat rem₃
-...                                                                   | emit nothing rem₄ = emit nothing rem₁
-...                                                                   | emit (just res₄) rem₄ = emit (just (bin oper (Digit res₁) (Digit res₄))) rem₄
+...                                       | emit (just oper) rem₂ with takeNat rem₂
+...                                                                   | emit nothing rem₃ = emit nothing rem₁
+...                                                                   | emit (just res₃) rem₃ = emit (just (bin oper (Digit res₁) (Digit res₃))) rem₃
 
 takeLine : List Char → List (Result BinExpr)
 takeLine s = map takeBin (split ('\n' ∷ []) s)
