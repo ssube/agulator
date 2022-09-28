@@ -102,4 +102,4 @@ takeBin s with takeNat s
 ...                                                                   | emit (just res₃) rem₃ = emit (just (bin oper (Digit res₁) (Digit res₃))) rem₃
 
 takeLine : List Char → List (Result BinExpr)
-takeLine s = map takeBin (split (';' ∷ []) s)
+takeLine s = map takeBin (reverse (split (';' ∷ []) s))
