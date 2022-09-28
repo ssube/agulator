@@ -6,6 +6,8 @@ open import Agda.Builtin.Maybe
 open import Agda.Builtin.Nat
 open import Agda.Builtin.String
 
+import Data.List using (_++_)
+
 open import Expr
 open import Util
 
@@ -25,11 +27,14 @@ takeCons [] r = emit nothing r
 takeCons _ [] = emit nothing []
 takeCons cs (x ∷ xs) with (findCharIndex 0 x cs)
 ...                     | nothing = emit nothing (x ∷ xs)
--- ...                     | just n = x ∷ (takeCons cs xs)
 ...                     | just n with (takeCons cs xs)
 ...                                 | emit nothing rem = emit (just (x ∷ [])) xs
 ...                                 | emit (just res) rem = emit (just (x ∷ res)) rem
 
+digits : List Char
+digits = primStringToList "0123456789"
+
+-- parse a single character into a typed token
 parseChar : Char → Token
 parseChar '0' = Digit 0
 parseChar '1' = Digit 1
@@ -47,15 +52,13 @@ parseChar '+' = Oper '+'
 parseChar ' ' = Skip ' '
 parseChar _   = Term
 
+-- parse a number from a list of characters
 parseNat : Maybe Nat → List Char → Result Nat
 parseNat a [] = emit a []
 parseNat a (x ∷ xs) with parseChar x
 ...                     | Digit n = parseNat (just (((default 0 a) * 10) + n)) xs
 ...                     | Skip c = parseNat a xs
 ...                     | _ = emit nothing xs
-
-digits : List Char
-digits = primStringToList "0123456789"
 
 takeNat : List Char → Result Nat
 takeNat s with takeCons digits s
@@ -69,10 +72,8 @@ takeOper s with takeCons ('+' ∷ []) s
 ...           | emit nothing rem = emit nothing rem
 ...           | emit (just []) rem = emit nothing rem
 ...           | emit (just (x ∷ xs)) rem with parseChar x
-...                                         | Oper o = emit (just (Oper o)) rem -- todo: what about xs?
-...                                         | _ = emit nothing rem -- todo: loop here?
-
--- we know operators are a single char, so xs must be empty, but anything left there should be attached to rem?
+...                                         | Oper o = emit (just (Oper o)) (Data.List._++_ xs rem)
+...                                         | _ = emit nothing s
 
 data BinExpr : Set where
   bin : Token → Token → Token → BinExpr
@@ -85,13 +86,11 @@ evalBin (emit (just (bin _ _ _)) rem) = emit nothing rem
 takeBin : List Char → Result BinExpr
 takeBin s with takeNat s
 ...           | emit nothing rem₁ = emit nothing s
--- ...           | emit (just res₁) rem₁ = emit (just (bin (Oper '+') (Digit res₁) (Digit res₁))) rem₁
 ...           | emit (just res₁) rem₁ with takeOper rem₁
 ...                                       | emit nothing rem₂ = emit nothing rem₁
--- ...                                       | emit (just oper) rem₂ = emit (just (bin oper (Digit res₁) (Digit res₁))) rem₁
 ...                                       | emit (just oper) rem₂ with takeNat rem₂
 ...                                                                   | emit nothing rem₃ = emit nothing rem₁
 ...                                                                   | emit (just res₃) rem₃ = emit (just (bin oper (Digit res₁) (Digit res₃))) rem₃
 
 takeLine : List Char → List (Result BinExpr)
-takeLine s = map takeBin (split ('\n' ∷ []) s)
+takeLine s = map takeBin (split (';' ∷ []) s)

@@ -84,6 +84,6 @@ split = go [] []
   where
     go : List Char → List (List Char) → List Char → List Char → List (List Char)
     go acc acl delims [] = acl
-    go acc acl delims (x ∷ xs) with (primCharEquality x '\n')
-    ...                           | true = go [] (acc ∷ acl) delims xs
-    ...                           | false = go (x ∷ acc) acl delims xs
+    go acc acl delims (x ∷ xs) with findCharIndex 0 x delims
+    ...                           | nothing = go (x ∷ acc) acl delims xs
+    ...                           | _ = go [] (acc ∷ acl) delims xs
