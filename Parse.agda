@@ -72,7 +72,7 @@ parseNat a (x ∷ xs) with parseChar x
 takeNat : List Char → Result Nat
 takeNat s with takeCons digits s
 ...            | emit nothing rem₁ = emit nothing rem₁
-...            | emit (just xs) rem₁ with parseNat nothing (reverse xs)
+...            | emit (just xs) rem₁ with parseNat nothing xs
 ...                                     | emit nothing rem₂ = emit nothing rem₁
 ...                                     | emit (just n) rem₂ = emit (just n) rem₁
 
@@ -81,7 +81,7 @@ takeOper s with takeCons opers s
 ...           | emit nothing rem = emit nothing rem
 ...           | emit (just []) rem = emit nothing rem
 ...           | emit (just (x ∷ xs)) rem with parseChar x
-...                                         | Oper o = emit (just (Oper o)) (Data.List._++_ xs rem)
+...                                         | Oper o = emit (just (Oper o)) (xs ++ rem)
 ...                                         | _ = emit nothing s
 
 data BinExpr : Set where
@@ -102,4 +102,4 @@ takeBin s with takeNat s
 ...                                                                   | emit (just res₃) rem₃ = emit (just (bin oper (Digit res₁) (Digit res₃))) rem₃
 
 takeLine : List Char → List (Result BinExpr)
-takeLine s = map takeBin (reverse (split (';' ∷ []) s))
+takeLine s = map takeBin (map reverse (reverse (split (';' ∷ []) s)))
