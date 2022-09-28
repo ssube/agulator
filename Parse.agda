@@ -34,6 +34,9 @@ takeCons cs (x ∷ xs) with (findCharIndex 0 x cs)
 digits : List Char
 digits = primStringToList "0123456789"
 
+opers : List Char
+opers = primStringToList "=+"
+
 -- parse a single character into a typed token
 parseChar : Char → Token
 parseChar '0' = Digit 0
@@ -68,7 +71,7 @@ takeNat s with takeCons digits s
 ...                                     | emit (just n) rem₂ = emit (just n) rem₁
 
 takeOper : List Char → Result Token
-takeOper s with takeCons ('+' ∷ []) s
+takeOper s with takeCons opers s
 ...           | emit nothing rem = emit nothing rem
 ...           | emit (just []) rem = emit nothing rem
 ...           | emit (just (x ∷ xs)) rem with parseChar x
