@@ -6,10 +6,16 @@ open import Agda.Builtin.Maybe
 open import Agda.Builtin.Nat
 open import Agda.Builtin.String
 
-import Data.List using (_++_)
+open import Data.List using (_++_; reverse)
 
-open import Expr
 open import Util
+
+data Token : Set where
+  Digit : Nat → Token
+  Delim : Char → Token
+  Oper : Char → Token
+  Skip : Char → Token
+  Term : Token
 
 record Result (A : Set) : Set where
   constructor emit
@@ -66,7 +72,7 @@ parseNat a (x ∷ xs) with parseChar x
 takeNat : List Char → Result Nat
 takeNat s with takeCons digits s
 ...            | emit nothing rem₁ = emit nothing rem₁
-...            | emit (just xs) rem₁ with parseNat nothing xs
+...            | emit (just xs) rem₁ with parseNat nothing (reverse xs)
 ...                                     | emit nothing rem₂ = emit nothing rem₁
 ...                                     | emit (just n) rem₂ = emit (just n) rem₁
 

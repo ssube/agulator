@@ -1,3 +1,7 @@
+module State where
+
+-- not really used yet
+
 record State (V : Set) : Set where
   constructor state
   field

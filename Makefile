@@ -4,7 +4,9 @@ default: calc
 
 clean:
 	rm -rfv MAlonzo/
-	rm -v calc
+	rm -v Calc
 
 calc:
 	agda -c Calc.agda
+
+Calc: calc

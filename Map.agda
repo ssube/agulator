@@ -1,3 +1,7 @@
+module Map where
+
+-- not really used yet
+
 record Map (K V : Set) : Set where
   constructor mapOf
   field
