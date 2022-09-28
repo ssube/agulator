@@ -1,3 +1,13 @@
+module Parse where
+
+open import Agda.Builtin.Char
+open import Agda.Builtin.List
+open import Agda.Builtin.Maybe
+open import Agda.Builtin.Nat
+open import Agda.Builtin.String
+
+open import Util
+
 data Token : Set where
   Digit : Nat → Token
   Delim : Char → Token
@@ -19,6 +29,29 @@ parseChar ',' = Delim ','
 parseChar '=' = Oper '='
 parseChar '+' = Oper '+'
 parseChar _   = Term
+
+parseNat : Nat → List Char → Nat
+parseNat a [] = a
+parseNat a (x ∷ xs) with parseChar x
+...                     | Digit n = parseNat ((a * 10) + n) xs
+...                     | _ = a
+
+digits : List Char
+digits = primStringToList "0123456789"
+
+takeNat : String → Maybe Nat
+takeNat s with takeCons digits (primStringToList s)
+...            | [] = nothing
+...            | xs = just (parseNat 0 xs)
+
+parseList₂ : String → List Nat
+parseList₂ s with primStringToList s
+...             | [] = []
+...             | (x ∷ xs) with parseChar x
+...                           | Digit n = n ∷ []
+...                           | _ = []
+
+-- old stuff...
 
 parseList : Nat → List Char → List Nat
 parseList a [] = a ∷ []
