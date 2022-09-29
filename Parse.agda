@@ -24,12 +24,15 @@ record Result (A : Set) : Set where
     res : Maybe A
     rem : List Char
 
+-- emit a result with a value and continue parsing
 emit↓ : {A : Set} → A → List Char → Result A
 emit↓ a rem = emit (just a) rem
 
+-- emit a result without a value and backtrack
 emit↑ : {A : Set} → List Char → Result A
 emit↑ rem = emit nothing rem
 
+-- result to string
 showResult : {A : Set} → (A → String) → Result A → String
 showResult f (emit nothing rem) = primStringAppend "remainder: " (primStringFromList rem)
 showResult f (emit (just r) []) = primStringAppend "result: " (f r)
@@ -100,6 +103,7 @@ takeOper s with takeCons opers s
 ...                                         | Oper o = emit↓ (Oper o) (xs ++ rem)
 ...                                         | _ = emit↑ s
 
+-- this should maybe be its own module or something
 data BinExpr : Set where
   bin : Token → Token → Token → BinExpr
 
