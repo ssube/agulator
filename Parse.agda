@@ -25,19 +25,26 @@ record Result (A : Set) : Set where
     res : Maybe A
     rem : List Char
 
+emit↓ : {A : Set} → A → List Char → Result A
+emit↓ a rem = emit (just a) rem
+
+emit↑ : {A : Set} → List Char → Result A
+emit↑ rem = emit nothing rem
+
 showResult : {A : Set} → (A → String) → Result A → String
-showResult f (emit (just r) _) = primStringAppend "result: " (f r)
 showResult f (emit nothing rem) = primStringAppend "remainder: " (primStringFromList rem)
+showResult f (emit (just r) []) = primStringAppend "result: " (f r)
+showResult f (emit (just r) xs) = primStringAppend (primStringAppend "result: " (f r)) (primStringAppend ", remainder: " (primStringFromList xs))
 
 -- take consecutive occurences of a character set
 takeCons : List Char → List Char → Result (List Char)
-takeCons [] r = emit nothing r
-takeCons _ [] = emit nothing []
+takeCons _ [] = emit↑ []
+takeCons [] r = emit↑ r
 takeCons cs (x ∷ xs) with (findCharIndex 0 x cs)
-...                     | nothing = emit nothing (x ∷ xs)
+...                     | nothing = emit↑ (x ∷ xs)
 ...                     | just n with (takeCons cs xs)
-...                                 | emit nothing rem = emit (just (x ∷ [])) xs
-...                                 | emit (just res) rem = emit (just (x ∷ res)) rem
+...                                 | emit nothing rem = emit↓ (x ∷ []) xs
+...                                 | emit (just res) rem = emit↓ (x ∷ res) rem
 
 digits : List Char
 digits = primStringToList "0123456789"
@@ -70,45 +77,44 @@ parseNat : Maybe Nat → List Char → Result Nat
 parseNat a [] = emit a []
 parseNat a (x ∷ xs) with parseChar x
 ...                     | Digit n = parseNat (just (((default 0 a) * 10) + n)) xs
-...                     | Skip c = parseNat a xs
-...                     | _ = emit nothing xs
+...                     | _ = emit↑ xs
 
 takeNat : List Char → Result Nat
 takeNat s with takeCons digits s
 ...            | emit nothing rem₁ = emit nothing rem₁
 ...            | emit (just xs) rem₁ with parseNat nothing xs
-...                                     | emit nothing rem₂ = emit nothing rem₁
-...                                     | emit (just n) rem₂ = emit (just n) rem₁
+...                                     | emit nothing rem₂ = emit↑ rem₁
+...                                     | emit (just n) rem₂ = emit↓ n rem₁
 
 takeOper : List Char → Result Token
 takeOper s with takeCons opers s
-...           | emit nothing rem = emit nothing rem
-...           | emit (just []) rem = emit nothing rem
+...           | emit nothing rem = emit↑ rem
+...           | emit (just []) rem = emit↑ rem
 ...           | emit (just (x ∷ xs)) rem with parseChar x
-...                                         | Oper o = emit (just (Oper o)) (xs ++ rem)
-...                                         | _ = emit nothing s
+...                                         | Oper o = emit↓ (Oper o) (xs ++ rem)
+...                                         | _ = emit↑ s
 
 data BinExpr : Set where
   bin : Token → Token → Token → BinExpr
 
 evalBin : Result BinExpr → Result Nat
-evalBin (emit nothing rem) = emit nothing rem
-evalBin (emit (just (bin (Oper '+') (Digit a) (Digit b))) rem) = emit (just (a + b)) rem
-evalBin (emit (just (bin (Oper '-') (Digit a) (Digit b))) rem) = emit (just (a - b)) rem
-evalBin (emit (just (bin (Oper '*') (Digit a) (Digit b))) rem) = emit (just (a * b)) rem
+evalBin (emit nothing rem) = emit↑ rem
+evalBin (emit (just (bin (Oper '+') (Digit a) (Digit b))) rem) = emit↓ (a + b) rem
+evalBin (emit (just (bin (Oper '-') (Digit a) (Digit b))) rem) = emit↓ (a - b) rem
+evalBin (emit (just (bin (Oper '*') (Digit a) (Digit b))) rem) = emit↓ (a * b) rem
 evalBin (emit (just (bin (Oper '/') (Digit a) (Digit b))) rem) with (b == zero)
-...                                                                | false = emit (just (a / (suc (b - 1)))) rem -- todo: why tho
-...                                                                | true = emit nothing rem
-evalBin (emit (just (bin _ _ _)) rem) = emit nothing rem
+...                                                                | false = emit↓ (a / (suc (b - 1))) rem -- todo: why tho
+...                                                                | true = emit↑ rem
+evalBin (emit (just (bin _ _ _)) rem) = emit↑ rem
 
 takeBin : List Char → Result BinExpr
 takeBin s with takeNat s
-...           | emit nothing rem₁ = emit nothing s
+...           | emit nothing rem₁ = emit↑ s
 ...           | emit (just res₁) rem₁ with takeOper rem₁
-...                                       | emit nothing rem₂ = emit nothing rem₁
+...                                       | emit nothing rem₂ = emit↑ rem₁
 ...                                       | emit (just oper) rem₂ with takeNat rem₂
-...                                                                   | emit nothing rem₃ = emit nothing rem₁
-...                                                                   | emit (just res₃) rem₃ = emit (just (bin oper (Digit res₁) (Digit res₃))) rem₃
+...                                                                   | emit nothing rem₃ = emit↑ rem₁
+...                                                                   | emit (just res₃) rem₃ = emit↓ (bin oper (Digit res₁) (Digit res₃)) rem₃
 
 takeLine : List Char → List (Result BinExpr)
 takeLine s = map takeBin (map reverse (reverse (split (';' ∷ []) s)))
