@@ -21,7 +21,7 @@ data Token : Set where
 record Result (A : Set) : Set where
   constructor emit
   field
-    res : Maybe A
+    val : Maybe A
     rem : List Char
 
 -- emit a result with a value and continue parsing
@@ -46,13 +46,24 @@ takeCons cs (x ∷ xs) with (findCharIndex 0 x cs)
 ...                     | nothing = emit↑ (x ∷ xs)
 ...                     | just n with (takeCons cs xs)
 ...                                 | emit nothing rem = emit↓ (x ∷ []) xs
-...                                 | emit (just res) rem = emit↓ (x ∷ res) rem
+...                                 | emit (just val) rem = emit↓ (x ∷ val) rem
+
+-- ignore consecutive characters
+ignoreCons : List Char → List Char → List Char
+ignoreCons _ [] = []
+ignoreCons [] r = r
+ignoreCons cs xs with takeCons cs xs
+...                 | emit nothing rem = rem
+...                 | emit (just val) rem = rem
 
 digits : List Char
 digits = primStringToList "0123456789"
 
 opers : List Char
 opers = primStringToList "-+*/"
+
+skips : List Char
+skips = primStringToList " "
 
 -- parse a single character into a typed token
 parseChar : Char → Token
@@ -82,7 +93,7 @@ parseNat a (x ∷ xs) with parseChar x
 ...                     | _ = emit↑ xs
 
 takeNat : List Char → Result Nat
-takeNat s with takeCons digits s
+takeNat s with takeCons digits (ignoreCons skips s)
 ...            | emit nothing rem₁ = emit↑ rem₁
 ...            | emit (just xs) rem₁ with parseNat nothing xs
 ...                                     | emit nothing rem₂ = emit↑ rem₁
@@ -96,7 +107,7 @@ parseOper (x ∷ xs) with parseChar x
 ...                   | _ = emit↑ xs
 
 takeOper : List Char → Result Token
-takeOper s with takeCons opers s
+takeOper s with takeCons opers (ignoreCons skips s)
 ...           | emit nothing rem = emit↑ rem
 ...           | emit (just []) rem = emit↑ rem
 ...           | emit (just (x ∷ xs)) rem with parseChar x
