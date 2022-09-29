@@ -8,7 +8,6 @@ open import Agda.Builtin.Nat
 open import Agda.Builtin.String
 
 open import Data.List using (_++_; reverse)
-open import Data.Nat.DivMod using (_/_)
 
 open import Util
 
@@ -81,10 +80,17 @@ parseNat a (x ∷ xs) with parseChar x
 
 takeNat : List Char → Result Nat
 takeNat s with takeCons digits s
-...            | emit nothing rem₁ = emit nothing rem₁
+...            | emit nothing rem₁ = emit↑ rem₁
 ...            | emit (just xs) rem₁ with parseNat nothing xs
 ...                                     | emit nothing rem₂ = emit↑ rem₁
 ...                                     | emit (just n) rem₂ = emit↓ n rem₁
+
+-- provided for completeness with the parse/take pair above, but this one is not used
+parseOper : List Char → Result Token
+parseOper [] = emit↑ []
+parseOper (x ∷ xs) with parseChar x
+...                   | Oper o = emit↓ (Oper o) xs
+...                   | _ = emit↑ xs
 
 takeOper : List Char → Result Token
 takeOper s with takeCons opers s
@@ -96,16 +102,6 @@ takeOper s with takeCons opers s
 
 data BinExpr : Set where
   bin : Token → Token → Token → BinExpr
-
-evalBin : Result BinExpr → Result Nat
-evalBin (emit nothing rem) = emit↑ rem
-evalBin (emit (just (bin (Oper '+') (Digit a) (Digit b))) rem) = emit↓ (a + b) rem
-evalBin (emit (just (bin (Oper '-') (Digit a) (Digit b))) rem) = emit↓ (a - b) rem
-evalBin (emit (just (bin (Oper '*') (Digit a) (Digit b))) rem) = emit↓ (a * b) rem
-evalBin (emit (just (bin (Oper '/') (Digit a) (Digit b))) rem) with (b == zero)
-...                                                                | false = emit↓ (a / (suc (b - 1))) rem -- todo: why tho
-...                                                                | true = emit↑ rem
-evalBin (emit (just (bin _ _ _)) rem) = emit↑ rem
 
 takeBin : List Char → Result BinExpr
 takeBin s with takeNat s

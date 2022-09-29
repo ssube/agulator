@@ -7,6 +7,6 @@ This is a calculator written in Agda.
 result: 221, result: 7
 ```
 
-This is my brain now:
+This is my brain now, it doesn't work so good:
 
 ![agulator](https://cdn.drawception.com/drawings/MjWfbBamq9.png)
