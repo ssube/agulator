@@ -89,15 +89,15 @@ parseChar _   = Term
 parseNat : Maybe Nat → List Char → Result Nat
 parseNat a [] = emit a []
 parseNat a (x ∷ xs) with parseChar x
-...                     | Digit n = parseNat (just (((default 0 a) * 10) + n)) xs
-...                     | _ = emit↑ xs
+...                    | Digit n = parseNat (just (((default 0 a) * 10) + n)) xs
+...                    | _ = emit↑ xs
 
 takeNat : List Char → Result Nat
-takeNat s with takeCons digits (ignoreCons skips s)
-...            | emit nothing rem₁ = emit↑ rem₁
-...            | emit (just xs) rem₁ with parseNat nothing xs
-...                                     | emit nothing rem₂ = emit↑ rem₁
-...                                     | emit (just n) rem₂ = emit↓ n rem₁
+takeNat s with takeCons digits s
+...          | emit nothing rem₁ = emit↑ rem₁
+...          | emit (just xs) rem₁ with parseNat nothing xs
+...                                   | emit (just n) rem₂ = emit↓ n rem₁
+...                                   | emit _ rem₂ = emit↑ rem₁
 
 -- provided for completeness with the parse/take pair above, but this one is not used
 parseOper : List Char → Result Token
@@ -107,25 +107,33 @@ parseOper (x ∷ xs) with parseChar x
 ...                   | _ = emit↑ xs
 
 takeOper : List Char → Result Token
-takeOper s with takeCons opers (ignoreCons skips s)
+takeOper s with takeCons opers s
 ...           | emit nothing rem = emit↑ rem
 ...           | emit (just []) rem = emit↑ rem
 ...           | emit (just (x ∷ xs)) rem with parseChar x
 ...                                         | Oper o = emit↓ (Oper o) (xs ++ rem)
 ...                                         | _ = emit↑ s
 
+-- ...           | emit (just xs) rem with parseOper xs
+-- ...                                   | emit (just (Oper o)) rem = emit↓ (Oper o) rem
+-- ...                                   | emit _ rem = emit↑ rem
+
 -- this should maybe be its own module or something
-data BinExpr : Set where
-  bin : Token → Token → Token → BinExpr
+record BinExpr : Set where
+  constructor bin
+  field
+    oper : Token
+    lhs : Token
+    rhs : Token
 
 takeBin : List Char → Result BinExpr
-takeBin s with takeNat s
-...           | emit nothing rem₁ = emit↑ s
-...           | emit (just res₁) rem₁ with takeOper rem₁
-...                                       | emit nothing rem₂ = emit↑ rem₁
-...                                       | emit (just oper) rem₂ with takeNat rem₂
-...                                                                   | emit nothing rem₃ = emit↑ rem₁
-...                                                                   | emit (just res₃) rem₃ = emit↓ (bin oper (Digit res₁) (Digit res₃)) rem₃
+takeBin s with takeNat (ignoreCons skips s)
+...          | emit nothing rem₁ = emit↑ s
+...          | emit (just res₁) rem₁ with takeOper (ignoreCons skips rem₁)
+...                                     | emit nothing rem₂ = emit↑ rem₁
+...                                     | emit (just oper) rem₂ with takeNat (ignoreCons skips rem₂)
+...                                                                | emit nothing rem₃ = emit↑ rem₁
+...                                                                | emit (just res₃) rem₃ = emit↓ (bin oper (Digit res₁) (Digit res₃)) rem₃
 
 takeLine : List Char → List (Result BinExpr)
 takeLine s = map takeBin (map reverse (reverse (split (';' ∷ []) s)))
