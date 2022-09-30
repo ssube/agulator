@@ -113,10 +113,10 @@ takeOper s with takeCons opers s
 ...           | emit (just (x ∷ xs)) rem with parseChar x
 ...                                         | Oper o = emit↓ (Oper o) (xs ++ rem)
 ...                                         | _ = emit↑ s
-
+-- why doesn't this version work?
 -- ...           | emit (just xs) rem with parseOper xs
--- ...                                   | emit (just (Oper o)) rem = emit↓ (Oper o) rem
--- ...                                   | emit _ rem = emit↑ rem
+-- ...                                   | emit (just (Oper o)) rem₂ = emit↓ (Oper o) rem₂
+-- ...                                   | emit _ rem₂ = emit↑ rem
 
 -- this should maybe be its own module or something
 record BinExpr : Set where
