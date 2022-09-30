@@ -18,6 +18,13 @@ data Token : Set where
   Skip : Char → Token
   Term : Token
 
+record BinExpr : Set where
+  constructor bin
+  field
+    oper : Token
+    lhs : Token
+    rhs : Token
+
 record Result (A : Set) : Set where
   constructor emit
   field
@@ -31,12 +38,6 @@ emit↓ a rem = emit (just a) rem
 -- emit a result without a value and backtrack
 emit↑ : {A : Set} → List Char → Result A
 emit↑ rem = emit nothing rem
-
--- result to string
-showResult : {A : Set} → (A → String) → Result A → String
-showResult f (emit nothing rem) = primStringAppend "remainder: " (primStringFromList rem)
-showResult f (emit (just r) []) = primStringAppend "result: " (f r)
-showResult f (emit (just r) xs) = primStringAppend (primStringAppend "result: " (f r)) (primStringAppend ", remainder: " (primStringFromList xs))
 
 -- take consecutive occurences of a character set
 takeCons : List Char → List Char → Result (List Char)
@@ -117,14 +118,6 @@ takeOper s with takeCons opers s
 -- ...           | emit (just xs) rem with parseOper xs
 -- ...                                   | emit (just (Oper o)) rem₂ = emit↓ (Oper o) rem₂
 -- ...                                   | emit _ rem₂ = emit↑ rem
-
--- this should maybe be its own module or something
-record BinExpr : Set where
-  constructor bin
-  field
-    oper : Token
-    lhs : Token
-    rhs : Token
 
 takeBin : List Char → Result BinExpr
 takeBin s with takeNat (ignoreCons skips s)

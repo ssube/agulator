@@ -70,22 +70,13 @@ findCharIndex n t (x ∷ xs) with primCharEquality t x
 ...                       | false = findCharIndex (suc n) t xs
 
 -- generic find if I was smarter
--- findAny : { A : Set } → Nat → A → List A → Nat
--- findAny n t [] = n
--- findAny n t (x ∷ xs) with (t ≡ x)
--- ...                     | refl = n
--- ...                     | _ = findAny (suc n) t xs
-
--- append all of the items in a list
-showList : {V : Set} → (V → String) → List V → String
-showList f [] = ""
-showList f (x ∷ []) = f x
-showList f (x ∷ xs) = primStringAppend (f x) (primStringAppend ", " (showList f xs))
-
--- maybe to definitely a string
-showMaybe : {V : Set} → (V → String) → Maybe V → String
-showMaybe f nothing = "nothing"
-showMaybe f (just v) = f v
+{-
+findAny : { A : Set } → Nat → A → List A → Nat
+findAny n t [] = n
+findAny n t (x ∷ xs) with (t ≡ x)
+...                     | refl = n
+...                     | _ = findAny (suc n) t xs
+-}
 
 split : List Char → List Char → List (List Char)
 split = go [] []
