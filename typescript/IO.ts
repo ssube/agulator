@@ -30,5 +30,5 @@ export async function getLine(): Promise<string> {
 }
 
 export async function putStrLn(ln: string): Promise<void> {
-  stdout.write(ln);
+  stdout.write(ln + '\n');
 }
