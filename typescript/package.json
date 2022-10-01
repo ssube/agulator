@@ -1,0 +1,17 @@
+{
+  "name": "agulator",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "calculator equivalent to agda",
+  "main": "out/index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "ssube",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^18.7.23",
+    "tsc": "^2.0.4",
+    "typescript": "^4.8.4"
+  }
+}

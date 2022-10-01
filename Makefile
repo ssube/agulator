@@ -2,11 +2,25 @@
 
 default: calc
 
-clean:
-	rm -rfv MAlonzo/
-	rm -v Calc
+clean: clean-agda clean-typescript
 
-calc:
+clean-agda:
+	rm -rfv agda/MAlonzo/
+	rm -v agda/Calc
+
+clean-typescript:
+	rm -rfv typescript/node_modules
+	rm -rfv typescript/out
+
+build-agda:
 	agda -c Calc.agda
 
-Calc: calc
+build-typescript:
+	( \
+		cd typescript; \
+		$$(npm bin)/tsc \
+	)
+
+Calc: build-agda
+
+typescript/out/index.js: build-typescript
