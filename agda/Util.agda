@@ -20,12 +20,10 @@ ident x = x
 -- transform each element of a list
 map : {A B : Set} → (A → B) → List A → List B
 map f [] = []
-map f (x ∷ []) = (f x) ∷ []
 map f (x ∷ xs) = (f x) ∷ (map f xs)
 
 -- combine two lists
 zip : {V : Set} → List V → List V → List V
-zip [] [] = []
 zip xs [] = xs
 zip [] ys = ys
 zip (x ∷ xs) (y ∷ ys) = x ∷ y ∷ (zip xs ys)
@@ -49,10 +47,10 @@ filterNothing (nothing ∷ xs) = filterNothing xs
 filterNothing (just x ∷ xs) = x ∷ filterNothing xs
 
 -- take the item at the given index
-takeIndex : {A : Set} → A → List A → Nat → A
-takeIndex d [] _ = d
-takeIndex d (x ∷ xs) 0 = x
-takeIndex d (x ∷ xs) (suc n) = takeIndex d xs n
+takeIndex : {A : Set} → List A → Nat → Maybe A
+takeIndex [] _ = nothing
+takeIndex (x ∷ xs) 0 = just x
+takeIndex (x ∷ xs) (suc n) = takeIndex xs n
 
 -- find the index of a number
 findIndex : Nat → Nat → List Nat → Maybe Nat
