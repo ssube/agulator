@@ -52,19 +52,22 @@ takeIndex [] _ = nothing
 takeIndex (x ∷ xs) 0 = just x
 takeIndex (x ∷ xs) (suc n) = takeIndex xs n
 
+findIndex : { A : Set } → Nat → ( A → A → Bool ) → A → List A → Maybe Nat
+findIndex n f t [] = nothing
+findIndex n f t (x ∷ xs) with f t x
+...                          | true = just n
+...                          | false = findIndex (suc n) f t xs
+
 -- find the index of a number
-findIndex : Nat → Nat → List Nat → Maybe Nat
-findIndex n t [] = nothing
-findIndex n t (x ∷ xs) with (t == x)
-...                       | true = just n
-...                       | false = findIndex (suc n) t xs
+findNatIndex : Nat → List Nat → Maybe Nat
+findNatIndex t [] = nothing
+findNatIndex t xs = findIndex zero _==_ t xs
 
 -- find the index of a character
-findCharIndex : Nat → Char → List Char → Maybe Nat
-findCharIndex n t [] = nothing
-findCharIndex n t (x ∷ xs) with primCharEquality t x
-...                       | true = just n
-...                       | false = findCharIndex (suc n) t xs
+findCharIndex : Char → List Char → Maybe Nat
+findCharIndex t [] = nothing
+findCharIndex t xs = findIndex zero primCharEquality t xs
+
 
 -- generic find if I was smarter
 {-
@@ -80,6 +83,6 @@ split = go [] []
   where
     go : List Char → List (List Char) → List Char → List Char → List (List Char)
     go acc acl delims [] = acc ∷ acl
-    go acc acl delims (x ∷ xs) with findCharIndex 0 x delims
+    go acc acl delims (x ∷ xs) with findCharIndex x delims
     ...                           | nothing = go (x ∷ acc) acl delims xs
     ...                           | _ = go [] (acc ∷ acl) delims xs

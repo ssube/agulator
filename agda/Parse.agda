@@ -43,7 +43,7 @@ emit↓ a rem = emit (just a) rem
 takeCons : List Char → List Char → Result (List Char)
 takeCons _ [] = emit↑ []
 takeCons [] r = emit↑ r
-takeCons cs (x ∷ xs) with (findCharIndex 0 x cs)
+takeCons cs (x ∷ xs) with (findCharIndex x cs)
 ...                     | nothing = emit↑ (x ∷ xs)
 ...                     | just n with (takeCons cs xs)
 ...                                 | emit nothing rem = emit↓ (x ∷ []) xs
