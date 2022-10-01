@@ -253,13 +253,16 @@ export function takeOper(s: ReadonlyArray<string>): Result<Token> {
  * attempt to take a binary expression from a stream.
  */
 export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
-  const lhs = takeNat(ignoreCons(SKIPS, s));
+  const takeAltNatGroup: (s: ReadonlyArray<string>) => Result<number> =
+    (takeAlt<number>).bind(nothing(), takeNat, (takeGroup<number>).bind(nothing(), takeNat));
+
+  const lhs = takeAltNatGroup(ignoreCons(SKIPS, s));
 
   if (isCont(lhs)) {
     const oper = takeOper(ignoreCons(SKIPS, remain(lhs)));
 
     if (isCont(oper)) {
-      const rhs = takeNat(ignoreCons(SKIPS, remain(oper)));
+      const rhs = takeAltNatGroup(ignoreCons(SKIPS, remain(oper)));
 
       if (isCont(rhs)) {
         return emitCont(bin(result(oper), digit(result(lhs)), digit(result(rhs))), remain(rhs));
@@ -270,9 +273,34 @@ export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
   return emitBack(s);
 }
 
+export function takeGroup<T>(f: (s: ReadonlyArray<string>) => Result<T>, s: ReadonlyArray<string>): Result<T> {
+  const a = takeCons(['('], s);
+  const b = f(remain(a));
+  const c = takeCons([')'], remain(b));
+
+  return emit(b.res, remain(c));
+}
+
+export function takeAlt<T>(a: (s: ReadonlyArray<string>) => Result<T>, b: (s: ReadonlyArray<string>) => Result<T>, s: ReadonlyArray<string>): Result<T> {
+  const ra = a(s);
+  if (isCont(ra)) {
+    return ra;
+  }
+
+  const rb = b(s);
+  if (isCont(rb)) {
+    return rb;
+  }
+
+  return emitBack(s);
+}
+
 /**
  * split a string into expressions and parse them
  */
 export function takeLine(c: ReadonlyArray<string>): ReadonlyArray<Result<BinExpr>> {
-  return map(takeBin, split([';'], c));
+  const takeAltBinGroup: (s: ReadonlyArray<string>) => Result<BinExpr> =
+    (takeAlt<BinExpr>).bind(nothing(), takeBin, (takeGroup<BinExpr>).bind(nothing(), takeBin));
+
+  return map(takeAltBinGroup, split([';'], c));
 }

@@ -119,14 +119,29 @@ takeOper s with takeCons opers s
 -- ...                                   | emit (just (Oper o)) rem₂ = emit↓ (Oper o) rem₂
 -- ...                                   | emit _ rem₂ = emit↑ rem
 
+takeAlt : { R : Set } → ( List Char → Result R ) → ( List Char → Result R ) → List Char → Result R
+
+takeGroup : { G : Set } → ( List Char → Result G ) → List Char → Result G
+
 takeBin : List Char → Result BinExpr
-takeBin s with takeNat (ignoreCons skips s)
+takeBin s with (takeAlt takeNat (takeGroup takeNat)) (ignoreCons skips s)
 ...          | emit nothing rem₁ = emit↑ s
 ...          | emit (just res₁) rem₁ with takeOper (ignoreCons skips rem₁)
 ...                                     | emit nothing rem₂ = emit↑ rem₁
-...                                     | emit (just oper) rem₂ with takeNat (ignoreCons skips rem₂)
+...                                     | emit (just oper) rem₂ with (takeAlt takeNat (takeGroup takeNat)) (ignoreCons skips rem₂)
 ...                                                                | emit nothing rem₃ = emit↑ rem₁
 ...                                                                | emit (just res₃) rem₃ = emit↓ (bin oper (Digit res₁) (Digit res₃)) rem₃
 
+takeGroup f s with takeCons ('(' ∷ []) s
+...              | emit _ rem with f rem
+...                              | emit g rem₂ with takeCons (')' ∷ []) rem₂
+...                                               | emit _ rem₃ = emit g rem₃
+
+takeAlt a b s with a s
+...              | emit (just r) rem = emit↓ r rem
+...              | emit nothing rem with b s
+...                                    | emit (just r) rem = emit↓ r rem
+...                                    | emit nothing rem = emit↑ s
+
 takeLine : List Char → List (Result BinExpr)
-takeLine s = map takeBin (map reverse (reverse (split (';' ∷ []) s)))
+takeLine s = map (takeAlt takeBin (takeGroup takeBin)) (map reverse (reverse (split (';' ∷ []) s)))
