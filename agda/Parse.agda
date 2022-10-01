@@ -31,13 +31,13 @@ record Result (A : Set) : Set where
     val : Maybe A
     rem : List Char
 
--- emit a result with a value and continue parsing
-emit↓ : {A : Set} → A → List Char → Result A
-emit↓ a rem = emit (just a) rem
-
 -- emit a result without a value and backtrack
 emit↑ : {A : Set} → List Char → Result A
 emit↑ rem = emit nothing rem
+
+-- emit a result with a value and continue parsing
+emit↓ : {A : Set} → A → List Char → Result A
+emit↓ a rem = emit (just a) rem
 
 -- take consecutive occurences of a character set
 takeCons : List Char → List Char → Result (List Char)
