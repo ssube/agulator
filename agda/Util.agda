@@ -50,8 +50,7 @@ filterNothing (just x ∷ xs) = x ∷ filterNothing xs
 
 -- take the item at the given index
 takeIndex : {A : Set} → A → List A → Nat → A
-takeIndex d [] 0 = d
-takeIndex d [] (suc x) = d
+takeIndex d [] _ = d
 takeIndex d (x ∷ xs) 0 = x
 takeIndex d (x ∷ xs) (suc n) = takeIndex d xs n
 

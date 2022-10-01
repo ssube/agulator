@@ -1,5 +1,5 @@
-MAlonzo/
-out/
-*.agdai
+agda/*.agdai
+agda/Calc
+agda/MAlonzo/
 
-Calc
+out/
