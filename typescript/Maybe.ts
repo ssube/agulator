@@ -32,3 +32,11 @@ export function isJust<T>(m: Maybe<T>): m is Just<T> {
 export function isNothing<T>(m: Maybe<T>): m is Nothing {
   return Object.getOwnPropertyDescriptor(m, SymbolNothing) !== undefined;
 }
+
+export function mustExist<T>(m: T | undefined): T {
+  if (m === undefined) {
+    throw new Error('this is where things start to go wrong');
+  } else {
+    return m;
+  }
+}
