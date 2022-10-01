@@ -273,6 +273,6 @@ export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
 /**
  * split a string into expressions and parse them
  */
-export function takeLine(c: Array<string>): Array<Result<BinExpr>> {
+export function takeLine(c: ReadonlyArray<string>): ReadonlyArray<Result<BinExpr>> {
   return map(takeBin, split([';'], c));
 }
