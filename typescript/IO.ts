@@ -10,18 +10,12 @@ export async function getLine(): Promise<string> {
     };
 
     const onEnd = () => {
-      off();
       res(chunks.join(''));
     };
 
     const onError = (err: Error) => {
       rej(err);
     }
-
-    const off = () => {
-      // stdin.off('data', onData);
-      // stdin.off('end', onEnd);
-    };
 
     stdin.on('end', onEnd);
     stdin.on('error', onError);
