@@ -1,5 +1,8 @@
 import { BinExpr, emitBack, emitCont, isCont, result, Result } from './Parse.js';
 
+/**
+ * evaluate a binary expression of the form `Oper o -> Digit a -> Digit b`
+ */
 export function evalBin(b: Result<BinExpr>): Result<number> {
   if (isCont(b)) {
     const br = result(b);

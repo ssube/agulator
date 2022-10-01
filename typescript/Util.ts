@@ -1,9 +1,15 @@
 import { mustExist } from './Maybe.js';
 
+/**
+ * functional wrapper for Array.map
+ */
 export function map<T, R>(f: (t: T) => R, arr: Array<T>): Array<R> {
   return arr.map(f);
 }
 
+/**
+ * split an array into a list of arrays based on a set of delimiters.
+ */
 export function split<T>(cs: Array<T>, xs: Array<T>): Array<Array<T>> {
   const acl: Array<Array<T>> = [];
   const rem = Array.from(xs);
@@ -37,6 +43,11 @@ export function split<T>(cs: Array<T>, xs: Array<T>): Array<Array<T>> {
   return acl;
 }
 
+/**
+ * split a string into a list of individual characters.
+ *
+ * equivalent to https://agda.github.io/agda-stdlib/Agda.Builtin.String.html#454
+ */
 export function primStringToList(s: string): Array<string> {
   return s.split('');
 }

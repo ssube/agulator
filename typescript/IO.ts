@@ -1,6 +1,9 @@
 import { Buffer } from 'node:buffer';
 import { stdin, stdout } from 'node:process';
 
+/**
+ * eventually read a line of input
+ */
 export async function getLine(): Promise<string> {
   return new Promise((res, rej) => {
     const chunks: Array<Buffer> = [];
@@ -23,6 +26,9 @@ export async function getLine(): Promise<string> {
   });
 }
 
+/**
+ * write a line of output
+ */
 export async function putStrLn(ln: string): Promise<void> {
   stdout.write(ln + '\n');
 }

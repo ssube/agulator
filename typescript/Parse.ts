@@ -59,6 +59,9 @@ export const DIGITS = primStringToList("0123456789");
 export const OPERS = primStringToList("-+*/");
 export const SKIPS = primStringToList(" ");
 
+/**
+ * emit the Result of some attempt to parse T.
+ */
 export function emit<T>(val: Maybe<T>, rem: ReadonlyArray<string>): Result<T> {
   return {
     res: val,
@@ -66,6 +69,9 @@ export function emit<T>(val: Maybe<T>, rem: ReadonlyArray<string>): Result<T> {
   };
 }
 
+/**
+ * emit a failed result and backtrack.
+ */
 export function emitBack<T>(rem: ReadonlyArray<string>): Result<T> {
   return {
     res: nothing(),
@@ -73,6 +79,9 @@ export function emitBack<T>(rem: ReadonlyArray<string>): Result<T> {
   };
 }
 
+/**
+ * emit a filled result and continue parsing.
+ */
 export function emitCont<T>(val: T, rem: ReadonlyArray<string>): Result<T> {
   return {
     res: just(val),
@@ -80,18 +89,30 @@ export function emitCont<T>(val: T, rem: ReadonlyArray<string>): Result<T> {
   };
 }
 
+/**
+ * get the value from a result.
+ */
 export function result<T>(r: Result<T, Just<T>>): T {
   return r.res[SymbolJust];
 }
 
+/**
+ * typeguard for filled results.
+ */
 export function isCont<T>(r: Result<T>): r is Result<T, Just<T>> {
   return isJust(r.res);
 }
 
+/**
+ * typeguard for failed results.
+ */
 export function isBack<T>(r: Result<T>): r is Result<T, Nothing> {
   return isNothing(r.res);
 }
 
+/**
+ * take consecutive characters that match the given character set.
+ */
 export function takeCons(cs: ReadonlyArray<string>, xs: ReadonlyArray<string>): Result<ReadonlyArray<string>> {
   const acc: Array<string> = [];
   const rem = Array.from(xs);
@@ -103,6 +124,9 @@ export function takeCons(cs: ReadonlyArray<string>, xs: ReadonlyArray<string>): 
   return emitCont(acc, rem)
 }
 
+/**
+ * ignore consecutive characters that match the given character set.
+ */
 export function ignoreCons(cs: ReadonlyArray<string>, xs: ReadonlyArray<string>): ReadonlyArray<string> {
   const rem = Array.from(xs);
 
@@ -113,6 +137,9 @@ export function ignoreCons(cs: ReadonlyArray<string>, xs: ReadonlyArray<string>)
   return rem;
 }
 
+/**
+ * parse a character into a Token.
+ */
 export function parseChar(c: string): Token {
   switch (c) {
     case '0':
@@ -149,6 +176,9 @@ export function parseChar(c: string): Token {
   }
 }
 
+/**
+ * parse a natural number from a list of digit tokens.
+ */
 export function parseNat(a: Maybe<number>, cs: ReadonlyArray<string>): Result<number> {
   if (cs.length === 0) {
     return emit(a, []);
@@ -165,6 +195,9 @@ export function parseNat(a: Maybe<number>, cs: ReadonlyArray<string>): Result<nu
   }
 }
 
+/**
+ * attempt to take a natural number from a stream.
+ */
 export function takeNat(s: ReadonlyArray<string>): Result<number> {
   const cs = takeCons(DIGITS, s);
 
@@ -179,6 +212,9 @@ export function takeNat(s: ReadonlyArray<string>): Result<number> {
   return emitBack(cs.rem);
 }
 
+/**
+ * parse an operator from a list of operator tokens.
+ */
 export function parseOper(s: ReadonlyArray<string>): Result<Token> {
   if (s.length === 0) {
     return emitBack([]);
@@ -194,10 +230,16 @@ export function parseOper(s: ReadonlyArray<string>): Result<Token> {
   }
 }
 
+/**
+ * attempt to take an operator from a stream.
+ */
 export function takeOper(s: ReadonlyArray<string>): Result<Token> {
   return parseOper(s);
 }
 
+/**
+ * attempt to take a binary expression from a stream.
+ */
 export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
   const lhs = takeNat(ignoreCons(SKIPS, s));
 
@@ -222,6 +264,9 @@ export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
   return emitBack(s);
 }
 
+/**
+ * split a string into expressions and parse them
+ */
 export function takeLine(c: Array<string>): Array<Result<BinExpr>> {
   return map(takeBin, split([';'], c));
 }
