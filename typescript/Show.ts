@@ -1,5 +1,5 @@
-import { SymbolJust } from './Maybe.js';
-import { isCont, Result } from './Parse.js';
+import { isCont, remain, Result, result } from './Parse.js';
+import { primStringFromList } from './Util.js';
 
 /**
  * functional wrapper for `number -> string`
@@ -20,8 +20,8 @@ export function showList<T>(f: (t: T) => string, arr: ReadonlyArray<T>): string 
  */
 export function showResult<T>(f: (t: T) => string, r: Result<T>): string {
   if (isCont(r)) {
-    return 'result: ' + f(r.res[SymbolJust]);
+    return 'result: ' + f(result(r));
   } else {
-    return 'remainder: ' + r.rem.join('');
+    return 'remainder: ' + primStringFromList(remain(r));
   }
 }

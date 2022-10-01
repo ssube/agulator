@@ -59,6 +59,13 @@ export const DIGITS = primStringToList("0123456789");
 export const OPERS = primStringToList("-+*/");
 export const SKIPS = primStringToList(" ");
 
+export function bin(oper: Token, lhs: Token, rhs: Token): BinExpr {
+  return {
+    oper,
+    lhs,
+    rhs,
+  };
+}
 /**
  * emit the Result of some attempt to parse T.
  */
@@ -87,6 +94,10 @@ export function emitCont<T>(val: T, rem: ReadonlyArray<string>): Result<T> {
     res: just(val),
     rem,
   };
+}
+
+export function remain<T>(r: Result<T>): ReadonlyArray<string> {
+  return r.rem;
 }
 
 /**
@@ -190,9 +201,9 @@ export function parseNat(a: Maybe<number>, cs: ReadonlyArray<string>): Result<nu
   if (n.type === 'digit') {
     const na = (defaultTo(0, a) * 10) + n.val;
     return parseNat(just(na), xs);
-  } else {
-    return emitBack(cs);
   }
+
+  return emitBack(cs);
 }
 
 /**
@@ -205,11 +216,11 @@ export function takeNat(s: ReadonlyArray<string>): Result<number> {
     const n = parseNat(nothing(), result(cs));
 
     if (isCont(n)) {
-      return emitCont(result(n), cs.rem);
+      return emitCont(result(n), remain(cs));
     }
   }
 
-  return emitBack(cs.rem);
+  return emitBack(s);
 }
 
 /**
@@ -225,9 +236,9 @@ export function parseOper(s: ReadonlyArray<string>): Result<Token> {
 
   if (o.type === 'oper') {
     return emitCont(o, xs);
-  } else {
-    return emitBack(xs);
   }
+
+  return emitBack(s);
 }
 
 /**
@@ -244,19 +255,13 @@ export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
   const lhs = takeNat(ignoreCons(SKIPS, s));
 
   if (isCont(lhs)) {
-    const oper = takeOper(ignoreCons(SKIPS, lhs.rem));
+    const oper = takeOper(ignoreCons(SKIPS, remain(lhs)));
 
     if (isCont(oper)) {
-      const rhs = takeNat(ignoreCons(SKIPS, oper.rem));
+      const rhs = takeNat(ignoreCons(SKIPS, remain(oper)));
 
       if (isCont(rhs)) {
-        const bin: BinExpr = {
-          lhs: digit(result(lhs)),
-          rhs: digit(result(rhs)),
-          oper: result(oper),
-        };
-
-        return emitCont(bin, rhs.rem);
+        return emitCont(bin(result(oper), digit(result(lhs)), digit(result(rhs))), remain(rhs));
       }
     }
   }

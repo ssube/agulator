@@ -51,3 +51,7 @@ export function split<T>(cs: Array<T>, xs: Array<T>): Array<Array<T>> {
 export function primStringToList(s: string): Array<string> {
   return s.split('');
 }
+
+export function primStringFromList(s: ReadonlyArray<string>): string {
+  return s.join('');
+}
