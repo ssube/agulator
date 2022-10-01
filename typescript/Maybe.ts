@@ -40,3 +40,11 @@ export function mustExist<T>(m: T | undefined): T {
     return m;
   }
 }
+
+export function defaultTo<T>(d: T, m: Maybe<T>): T {
+  if (isJust(m)) {
+    return m[SymbolJust];
+  } else {
+    return d;
+  }
+}

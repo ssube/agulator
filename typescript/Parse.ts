@@ -1,4 +1,4 @@
-import { isJust, isNothing, Just, just, Maybe, mustExist, Nothing, nothing, SymbolJust } from './Maybe.js';
+import { defaultTo, isJust, isNothing, Just, just, Maybe, mustExist, Nothing, nothing, SymbolJust } from './Maybe.js';
 import { map, primStringToList, split } from './Util.js';
 
 export type Token = {
@@ -155,10 +155,11 @@ export function parseNat(a: Maybe<number>, cs: ReadonlyArray<string>): Result<nu
   }
 
   const [x, ...xs] = cs;
-  const t = parseChar(x);
+  const n = parseChar(x);
 
-  if (t.type === 'digit') {
-    return emitCont(t.val, xs)
+  if (n.type === 'digit') {
+    const na = (defaultTo(0, a) * 10) + n.val;
+    return parseNat(just(na), xs);
   } else {
     return emitBack(cs);
   }
