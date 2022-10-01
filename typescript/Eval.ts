@@ -13,7 +13,11 @@ export function evalBin(b: Result<BinExpr>): Result<number> {
         case '*':
           return emitCont(br.lhs.val * br.rhs.val, b.rem);
         case '/':
-          return emitCont(br.lhs.val / br.rhs.val, b.rem);
+          if (br.rhs.val === 0) {
+            return emitBack(b.rem);
+          } else {
+            return emitCont(br.lhs.val / br.rhs.val, b.rem);
+          }
         default:
           return emitBack(b.rem);
       }
