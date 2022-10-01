@@ -1,6 +1,10 @@
 import { defaultTo, isJust, isNothing, Just, just, Maybe, mustExist, Nothing, nothing, SymbolJust } from './Maybe.js';
 import { map, primStringToList, split } from './Util.js';
 
+export const DIGITS = primStringToList("0123456789");
+export const OPERS = primStringToList("-+*/");
+export const SKIPS = primStringToList(" ");
+
 export type Token = {
   type: 'digit';
   val: number;
@@ -50,15 +54,6 @@ export interface BinExpr {
   rhs: Token;
 }
 
-export interface Result<T, R = Maybe<T>> {
-  res: R;
-  rem: ReadonlyArray<string>;
-}
-
-export const DIGITS = primStringToList("0123456789");
-export const OPERS = primStringToList("-+*/");
-export const SKIPS = primStringToList(" ");
-
 export function bin(oper: Token, lhs: Token, rhs: Token): BinExpr {
   return {
     oper,
@@ -66,6 +61,12 @@ export function bin(oper: Token, lhs: Token, rhs: Token): BinExpr {
     rhs,
   };
 }
+
+export interface Result<T, R = Maybe<T>> {
+  res: R;
+  rem: ReadonlyArray<string>;
+}
+
 /**
  * emit the Result of some attempt to parse T.
  */
