@@ -20,7 +20,11 @@ export function showList<T>(f: (t: T) => string, arr: ReadonlyArray<T>): string 
  */
 export function showResult<T>(f: (t: T) => string, r: Result<T>): string {
   if (isCont(r)) {
-    return 'result: ' + f(result(r));
+    if (r.rem.length > 0) {
+      return `result: ${f(result(r))}, remainder: ${primStringFromList(remain(r))}`;
+    } else {
+      return 'result: ' + f(result(r));
+    }
   } else {
     return 'remainder: ' + primStringFromList(remain(r));
   }

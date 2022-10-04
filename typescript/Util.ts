@@ -1,4 +1,4 @@
-import { mustExist } from './Maybe.js';
+import { mustExist, nothing } from './Maybe.js';
 
 /**
  * functional wrapper for Array.map

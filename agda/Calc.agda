@@ -17,7 +17,7 @@ open import Show
 open import Util
 
 main : Main
-main = run (getLine >>= λ c → putStrLn (showList (showResult show) (map evalBin (takeLine (primStringToList c)))))
+main = run (getLine >>= λ c → putStrLn (showList (showResult show) (map evalExpr (takeLine (primStringToList c)))))
 
 -- singular version
--- main = run (getLine >>= λ c → putStrLn (showResult show (evalBin (takeBin (primStringToList c)))))
+-- main = run (getLine >>= λ c → putStrLn (showResult show (evalExpr (takeBin (primStringToList c)))))

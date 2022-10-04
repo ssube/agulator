@@ -49,13 +49,17 @@ export function term(): Token {
 }
 
 export interface BinExpr {
+  type: 'bin';
   oper: Token;
-  lhs: Token;
-  rhs: Token;
+  lhs: Expr;
+  rhs: Expr;
 }
 
-export function bin(oper: Token, lhs: Token, rhs: Token): BinExpr {
+export type Expr = BinExpr | Token;
+
+export function bin(oper: Token, lhs: Expr, rhs: Expr): BinExpr {
   return {
+    type: 'bin',
     oper,
     lhs,
     rhs,
@@ -122,10 +126,16 @@ export function isBack<T>(r: Result<T>): r is Result<T, Nothing> {
   return isNothing(r.res);
 }
 
+type Parser<T> = (s: ReadonlyArray<string>) => Result<T>;
+
 /**
  * take consecutive characters that match the given character set.
  */
 export function takeCons(cs: ReadonlyArray<string>, xs: ReadonlyArray<string>): Result<ReadonlyArray<string>> {
+  if (cs.length === 0 || xs.length === 0) {
+    return emitBack(xs);
+  }
+
   const acc: Array<string> = [];
   const rem = Array.from(xs);
 
@@ -133,7 +143,24 @@ export function takeCons(cs: ReadonlyArray<string>, xs: ReadonlyArray<string>): 
     acc.push(mustExist(rem.shift()));
   }
 
-  return emitCont(acc, rem)
+  if (acc.length > 0) {
+    return emitCont(acc, rem)
+  }
+
+  return emitBack(xs);
+}
+
+export function takeOnce(cs: ReadonlyArray<string>, xs: ReadonlyArray<string>): Result<string> {
+  if (cs.length === 0 || xs.length === 0) {
+    return emitBack(xs);
+  }
+
+  const [x, ...xr] = xs;
+  if (cs.includes(x)) {
+    return emitCont(x, xr);
+  }
+
+  return emitBack(xs);
 }
 
 /**
@@ -210,14 +237,14 @@ export function parseNat(a: Maybe<number>, cs: ReadonlyArray<string>): Result<nu
 /**
  * attempt to take a natural number from a stream.
  */
-export function takeNat(s: ReadonlyArray<string>): Result<number> {
+export function takeNat(s: ReadonlyArray<string>): Result<Token> {
   const cs = takeCons(DIGITS, s);
 
   if (isCont(cs)) {
     const n = parseNat(nothing(), result(cs));
 
     if (isCont(n)) {
-      return emitCont(result(n), remain(cs));
+      return emitCont(digit(result(n)), remain(cs));
     }
   }
 
@@ -252,20 +279,17 @@ export function takeOper(s: ReadonlyArray<string>): Result<Token> {
 /**
  * attempt to take a binary expression from a stream.
  */
-export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
-  const takeAltNatGroup: (s: ReadonlyArray<string>) => Result<number> =
-    (takeAlt<number>).bind(nothing(), takeNat, (takeGroup<number>).bind(nothing(), takeNat));
-
-  const lhs = takeAltNatGroup(ignoreCons(SKIPS, s));
+export function takeBin(s: ReadonlyArray<string>): Result<Expr> {
+  const lhs = takeStarter(ignoreCons(SKIPS, s));
 
   if (isCont(lhs)) {
     const oper = takeOper(ignoreCons(SKIPS, remain(lhs)));
 
     if (isCont(oper)) {
-      const rhs = takeAltNatGroup(ignoreCons(SKIPS, remain(oper)));
+      const rhs = takeAny(ignoreCons(SKIPS, remain(oper)));
 
       if (isCont(rhs)) {
-        return emitCont(bin(result(oper), digit(result(lhs)), digit(result(rhs))), remain(rhs));
+        return emitCont(bin(result(oper), result(lhs), result(rhs)), remain(rhs));
       }
     }
   }
@@ -273,15 +297,31 @@ export function takeBin(s: ReadonlyArray<string>): Result<BinExpr> {
   return emitBack(s);
 }
 
-export function takeGroup<T>(f: (s: ReadonlyArray<string>) => Result<T>, s: ReadonlyArray<string>): Result<T> {
-  const a = takeCons(['('], s);
-  const b = f(remain(a));
-  const c = takeCons([')'], remain(b));
+/**
+ * attempt to take a rule surrounded by parenthesis.
+ */
+export function takeGroup<T>(f: Parser<T>, s: ReadonlyArray<string>): Result<T> {
+  const a = takeOnce(['('], s);
 
-  return emit(b.res, remain(c));
+  if (isCont(a)) {
+    const b = f(remain(a));
+
+    if (isCont(b)) {
+      const c = takeOnce([')'], remain(b));
+
+      if (isCont(c)) {
+        return emit(b.res, remain(c));
+      }
+    }
+  }
+
+  return emitBack(s);
 }
 
-export function takeAlt<T>(a: (s: ReadonlyArray<string>) => Result<T>, b: (s: ReadonlyArray<string>) => Result<T>, s: ReadonlyArray<string>): Result<T> {
+/**
+ * attempt to take the first rule. if that fails, attempt to take the second.
+ */
+export function takeAlt<TA, TB = TA>(a: Parser<TA>, b: Parser<TB>, s: ReadonlyArray<string>): Result<TA | TB> {
   const ra = a(s);
   if (isCont(ra)) {
     return ra;
@@ -298,9 +338,13 @@ export function takeAlt<T>(a: (s: ReadonlyArray<string>) => Result<T>, b: (s: Re
 /**
  * split a string into expressions and parse them
  */
-export function takeLine(c: ReadonlyArray<string>): ReadonlyArray<Result<BinExpr>> {
-  const takeAltBinGroup: (s: ReadonlyArray<string>) => Result<BinExpr> =
-    (takeAlt<BinExpr>).bind(nothing(), takeBin, (takeGroup<BinExpr>).bind(nothing(), takeBin));
-
-  return map(takeAltBinGroup, split([';'], c));
+export function takeLine(c: ReadonlyArray<string>): ReadonlyArray<Result<Expr>> {
+  return map(takeAny, split([';'], c));
 }
+
+export const takeBinGroup: Parser<Expr> = (takeGroup<Expr>).bind(nothing(), takeBin);
+export const takeBinAltGroup: Parser<Expr> = (takeAlt<Expr>).bind(nothing(), takeBinGroup, takeBin);
+export const takeAny: Parser<Expr> = (takeAlt<Expr>).bind(nothing(), takeBinAltGroup, takeNat);
+
+// limit the first half of binary expressions to a group or number, removing the option for an immediately nested bin
+export const takeStarter: Parser<Expr> = (takeAlt<Expr>).bind(nothing(), takeBinGroup, takeNat);

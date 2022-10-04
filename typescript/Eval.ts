@@ -1,28 +1,37 @@
-import { BinExpr, emitBack, emitCont, isCont, result, Result } from './Parse.js';
+import { emitBack, emitCont, Expr, isCont, Result, result } from './Parse.js';
 
 /**
  * evaluate a binary expression of the form `Oper o -> Digit a -> Digit b`
  */
-export function evalBin(b: Result<BinExpr>): Result<number> {
+export function evalTree(b: Result<Expr>): Result<number> {
   if (isCont(b)) {
     const br = result(b);
 
-    if (br.lhs.type === 'digit' && br.oper.type === 'oper' && br.rhs.type === 'digit') {
-      switch (br.oper.val) {
-        case '+':
-          return emitCont(br.lhs.val + br.rhs.val, b.rem);
-        case '-':
-          return emitCont(br.lhs.val - br.rhs.val, b.rem);
-        case '*':
-          return emitCont(br.lhs.val * br.rhs.val, b.rem);
-        case '/':
-          if (br.rhs.val === 0) {
+    if (br.type === 'digit') {
+      return emitCont(br.val, b.rem);
+    }
+
+    if (br.type === 'bin' && br.oper.type === 'oper') {
+      const lhs = evalTree(emitCont(br.lhs, b.rem));
+      const rhs = evalTree(emitCont(br.rhs, b.rem));
+
+      if (isCont(lhs) && isCont(rhs)) {
+        switch (br.oper.val) {
+          case '+':
+            return emitCont(result(lhs) + result(rhs), b.rem);
+          case '-':
+            return emitCont(result(lhs) - result(rhs), b.rem);
+          case '*':
+            return emitCont(result(lhs) * result(rhs), b.rem);
+          case '/':
+            if (result(rhs) === 0) {
+              return emitBack(b.rem);
+            } else {
+              return emitCont(result(lhs) / result(rhs), b.rem);
+            }
+          default:
             return emitBack(b.rem);
-          } else {
-            return emitCont(br.lhs.val / br.rhs.val, b.rem);
-          }
-        default:
-          return emitBack(b.rem);
+        }
       }
     }
   }

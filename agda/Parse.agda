@@ -8,6 +8,7 @@ open import Agda.Builtin.Nat
 open import Agda.Builtin.String
 
 open import Data.List using (_++_; reverse)
+open import Data.Product using (_×_)
 
 open import Util
 
@@ -18,12 +19,10 @@ data Token : Set where
   Skip : Char → Token
   Term : Token
 
-record BinExpr : Set where
-  constructor bin
-  field
-    oper : Token
-    lhs : Token
-    rhs : Token
+data Expr : Set where
+  BinExpr : Expr → Expr → Expr → Expr
+  NatExpr : Nat → Expr
+  OperExpr : Char → Expr
 
 record Result (A : Set) : Set where
   constructor emit
@@ -48,6 +47,13 @@ takeCons cs (x ∷ xs) with (findCharIndex x cs)
 ...                     | just n with (takeCons cs xs)
 ...                                 | emit nothing rem = emit↓ (x ∷ []) xs
 ...                                 | emit (just val) rem = emit↓ (x ∷ val) rem
+
+takeOnce : List Char → List Char → Result Char
+takeOnce _ [] = emit↑ []
+takeOnce [] r = emit↑ r
+takeOnce cs (x ∷ xs) with (findCharIndex x cs)
+...                     | nothing = emit↑ (x ∷ xs)
+...                     | just n = emit↓ x xs
 
 -- ignore consecutive characters
 ignoreCons : List Char → List Char → List Char
@@ -93,11 +99,11 @@ parseNat a (x ∷ xs) with parseChar x
 ...                    | Digit n = parseNat (just (((default 0 a) * 10) + n)) xs
 ...                    | _ = emit↑ xs
 
-takeNat : List Char → Result Nat
+takeNat : List Char → Result Expr
 takeNat s with takeCons digits s
 ...          | emit nothing rem₁ = emit↑ rem₁
 ...          | emit (just xs) rem₁ with parseNat nothing xs
-...                                   | emit (just n) rem₂ = emit↓ n rem₁
+...                                   | emit (just n) rem₂ = emit↓ (NatExpr n) rem₁
 ...                                   | emit _ rem₂ = emit↑ rem₁
 
 -- provided for completeness with the parse/take pair above, but this one is not used
@@ -107,41 +113,53 @@ parseOper (x ∷ xs) with parseChar x
 ...                   | Oper o = emit↓ (Oper o) xs
 ...                   | _ = emit↑ xs
 
-takeOper : List Char → Result Token
+takeOper : List Char → Result Expr
 takeOper s with takeCons opers s
 ...           | emit nothing rem = emit↑ rem
 ...           | emit (just []) rem = emit↑ rem
 ...           | emit (just (x ∷ xs)) rem with parseChar x
-...                                         | Oper o = emit↓ (Oper o) (xs ++ rem)
+...                                         | Oper o = emit↓ (OperExpr o) (xs ++ rem)
 ...                                         | _ = emit↑ s
+
 -- why doesn't this version work?
 -- ...           | emit (just xs) rem with parseOper xs
 -- ...                                   | emit (just (Oper o)) rem₂ = emit↓ (Oper o) rem₂
 -- ...                                   | emit _ rem₂ = emit↑ rem
 
-takeAlt : { R : Set } → ( List Char → Result R ) → ( List Char → Result R ) → List Char → Result R
+-- a recursive parser does not structurally terminate, but since the input string is finite
+-- and every take* function consumes some characters, it must eventually exhaust the input
+-- string or run out of alternatives to try
 
+{-# NON_TERMINATING #-}
+takeAlt : ( List Char → Result Expr ) → ( List Char → Result Expr ) → List Char → Result Expr
+takeBin : List Char → Result Expr
 takeGroup : { G : Set } → ( List Char → Result G ) → List Char → Result G
 
-takeBin : List Char → Result BinExpr
-takeBin s with (takeAlt takeNat (takeGroup takeNat)) (ignoreCons skips s)
+takeBinGroup = takeAlt (takeGroup takeBin) takeBin
+takeAny = takeAlt takeBinGroup takeNat
+
+takeBin s with takeNat (ignoreCons skips s)
 ...          | emit nothing rem₁ = emit↑ s
 ...          | emit (just res₁) rem₁ with takeOper (ignoreCons skips rem₁)
-...                                     | emit nothing rem₂ = emit↑ rem₁
-...                                     | emit (just oper) rem₂ with (takeAlt takeNat (takeGroup takeNat)) (ignoreCons skips rem₂)
-...                                                                | emit nothing rem₃ = emit↑ rem₁
-...                                                                | emit (just res₃) rem₃ = emit↓ (bin oper (Digit res₁) (Digit res₃)) rem₃
+...                                     | emit nothing rem₂ = emit↑ s
+...                                     | emit (just oper) rem₂ with takeAny (ignoreCons skips rem₂)
+...                                                                | emit nothing rem₃ = emit↑ s
+...                                                                | emit (just res₃) rem₃ = emit↓ (BinExpr oper res₁ res₃) rem₃
 
-takeGroup f s with takeCons ('(' ∷ []) s
+takeGroup f [] = emit↑ []
+takeGroup f s with takeOnce ('(' ∷ []) s
+...              | emit nothing _ = emit↑ s
 ...              | emit _ rem with f rem
-...                              | emit g rem₂ with takeCons (')' ∷ []) rem₂
-...                                               | emit _ rem₃ = emit g rem₃
+...                              | emit nothing _ = emit↑ s
+...                              | emit (just r) rem₂ with takeOnce (')' ∷ []) rem₂
+...                                               | emit nothing _ = emit↑ s
+...                                               | emit _ rem₃ = emit↓ r rem₃
 
 takeAlt a b s with a s
-...              | emit (just r) rem = emit↓ r rem
-...              | emit nothing rem with b s
-...                                    | emit (just r) rem = emit↓ r rem
-...                                    | emit nothing rem = emit↑ s
+...              | emit (just r) rem₁ = emit↓ r rem₁
+...              | emit nothing rem₁ with b s
+...                                    | emit (just r) rem₂ = emit↓ r rem₂
+...                                    | emit nothing rem₂ = emit↑ s
 
-takeLine : List Char → List (Result BinExpr)
-takeLine s = map (takeAlt takeBin (takeGroup takeBin)) (map reverse (reverse (split (';' ∷ []) s)))
+takeLine : List Char → List (Result Expr)
+takeLine s = map takeAny (map reverse (reverse (split (';' ∷ []) s)))
